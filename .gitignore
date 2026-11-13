@@ -1,5 +1,7 @@
 filesystem
 tests
 tests_B*
+tests_simple
+tests_tsan
 .DS_Store
 *.dSYM/

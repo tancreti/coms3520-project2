@@ -2,22 +2,32 @@
  * blockservice.h -- controllable block service for testing journal.c
  * COM S 3520 Project 2 (Fall 2026)
  *
- * The default block service implementation you are given completes every
- * write immediately. A complete implementation can also complete writes
- * later, in random order, on its own threads, and lets a test hold back
- * chosen writes, count what was issued, and check the journaling protocol
- * from a log of every issue and completion.
+ * The block service stands in for the disk. In the starter, every write
+ * completes immediately (BS_IMMEDIATE). You add the rest of the controls in
+ * blockservice.c (see the comment at its top): writes that complete later,
+ * in random order, on the block service's own threads (BS_ASYNC); holds,
+ * which keep chosen writes from completing; and perturbation. The event log,
+ * the counts, bs_wait_quiet and the protocol checker are provided.
  *
- * An example of how blockservice might be used in a test:
+ * An example of how a test might use it:
  *     bs_mode(BS_ASYNC);            // before init_journal
  *     init_journal();
  *     bs_hold(BS_TXE, 1);           // TxE of write 1 will not complete
- *     request(1); request(2);       // (testlib helper: notes, then request_write)
+ *     start_client(1, 2);           // (testlib) requests 1 and 2 on a client
+ *                                   // thread, so this thread never blocks
  *     bs_wait_quiet();              // let everything that can finish, finish
  *     ... check bs_issued(...) ...
  *     bs_release(BS_TXE, 1);
- *     wait_for_writes(2);           // (testlib helper)
- *     msg = bs_check_protocol(BS_CHECK_ALL_DONE | BS_CHECK_FIFO);
+ *     wait_for_writes(2);           // (testlib)
+ *     check_protocol(BS_CHECK_ALL_DONE | BS_CHECK_FIFO);   // (testlib)
+ *
+ * Request through a client thread (start_client) whenever writes are held:
+ * request_write blocks while buffer 1 is full, and a test thread blocked
+ * there can never reach its bs_release.
+ *
+ * Limits: write_ids must be 1 to 100000, and each write_id may be requested
+ * only once per test. The log holds 200000 events (each request logs 16),
+ * about 12000 requests per test.
  */
 #ifndef BLOCKSERVICE_H
 #define BLOCKSERVICE_H
@@ -57,7 +67,10 @@ int  bs_write_completes(void);                  /* write_complete calls seen */
 
 /* Wait until every write that is not held has completed, no completion
  * function is running, and nothing has been logged for about 20 ms (so
- * journal threads have had time to react). */
+ * journal threads have had time to react). It does not wait for held
+ * writes, or for a client thread that has not called request_write yet,
+ * and it cannot tell a journal thread that is slow from one that is stuck:
+ * "quiet" means only that nothing happened for 20 ms. */
 void bs_wait_quiet(void);
 
 /* Called by the test library around the journal (not by journal.c). */

@@ -5,10 +5,19 @@
  *                 ./tests NAME      run one test
  *                 ./tests all 7 100 run every test 100 times, seeds 7 to 106
  *
+ *                 make simple       run every test on the simple version
+ *
  * Each test is a function. Add it, with its name and a one-line description,
  * to the tests table above main. Above every test, write a comment that names
  * the rule it checks. Section 2.6 of the handout lists the tests your tests.c
- * must contain, and testlib.h lists the helpers.
+ * must contain, and testlib.h and blockservice.h list the helpers.
+ *
+ * Rules for every test (Section 2.6):
+ *   - Call bs_mode (if needed) and then init_journal once, at the start.
+ *   - Use each write_id once, from 1 to 100000.
+ *   - Use only the functions in journal.h, blockservice.h and testlib.h:
+ *     the autograder builds your tests with its own blockservice.c and
+ *     testlib.c.
  */
 #include <pthread.h>
 #include "testlib.h"
@@ -18,13 +27,16 @@
 #define B BUFFER_SIZE
 
 /* Example. Rule: when every write completes immediately, every request
- * finishes (write_complete is called once for each write). */
+ * finishes (write_complete is called once for each write) and commits
+ * exactly once (one TxE per request). */
 static void t_example_immediate(void) {
     bs_mode(BS_IMMEDIATE);          /* before init_journal */
     init_journal();
     for (int id = 1; id <= 10; id++)
         request(id);                /* notes the request, then calls request_write */
     wait_for_writes(10);
+    int txe = bs_issued(BS_TXE, BS_ANY);
+    TEST_ASSERT(txe == 10, "%d txe writes issued for 10 requests, expected 10", txe);
     check_protocol(BS_CHECK_ALL_DONE | BS_CHECK_FIFO);
 }
 

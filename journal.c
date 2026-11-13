@@ -16,6 +16,12 @@
 #include <stdio.h>
 #include "journal.h"
 
+/* One flag per write kind works here only because this version handles one
+ * request at a time, start to finish, on the caller's thread. Don't carry
+ * these flags into your pipeline: with three threads and several requests
+ * in flight, a single "txe complete" flag cannot tell request 3's TxE from
+ * request 4's, and reading and writing it from different threads without a
+ * lock is a data race. */
 int is_write_data_complete;
 int is_journal_txb_complete;
 int is_journal_bitmap_complete;

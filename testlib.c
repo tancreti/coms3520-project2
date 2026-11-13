@@ -113,20 +113,28 @@ int clients_returned(void) {
     return n;
 }
 
+static double now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
+}
+
 void wait_for_writes(int n) {
     /* Give up a second before the alarm, so a stuck journal gets a useful
-     * message: a protocol violation if there is one, otherwise a count. */
-    double limit_ms = (TEST_SECONDS - 1) * 1000.0, waited = 0;
+     * message: a protocol violation if there is one, otherwise a count and
+     * the first request that did not finish. */
+    double limit_ms = (TEST_SECONDS - 1) * 1000.0, start = now_ms();
     while (bs_write_completes() < n) {
-        if (waited >= limit_ms) {
+        if (now_ms() - start >= limit_ms) {
             const char *msg = bs_check_protocol(0);
             if (msg) test_fail("protocol: %s", msg);
+            msg = bs_check_protocol(BS_CHECK_ALL_DONE);
             test_fail("only %d of %d writes finished after %.0f s; the journal "
                       "is stuck (deadlock, lost wakeup, or waiting for a write "
-                      "it never issued)", bs_write_completes(), n, limit_ms / 1000);
+                      "it never issued)%s%s", bs_write_completes(), n, limit_ms / 1000,
+                      msg ? ". First unfinished: " : "", msg ? msg : "");
         }
         sleep_ms(1);
-        waited += 1;
     }
 }
 
