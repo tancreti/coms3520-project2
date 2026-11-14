@@ -2,12 +2,15 @@
  * blockservice.h -- controllable block service for testing journal.c
  * COM S 3520 Project 2 (Fall 2026)
  *
- * The block service stands in for the disk. In the starter, every write
- * completes immediately (BS_IMMEDIATE). You add the rest of the controls in
- * blockservice.c (see the comment at its top): writes that complete later,
- * in random order, on the block service's own threads (BS_ASYNC); holds,
- * which keep chosen writes from completing; and perturbation. The event log,
- * the counts, bs_wait_quiet and the protocol checker are provided.
+ * The block service stands in for the disk. In the starter blockservice.c,
+ * every write completes immediately (BS_IMMEDIATE). The rest of the controls
+ * are declared below: writes that complete later, in random order, on the
+ * block service's own threads (BS_ASYNC); holds, which keep chosen writes
+ * from completing; and perturbation. On the GenAI path you implement them in
+ * blockservice.c (see the comment at its top). On the no-GenAI path, the
+ * blockservice.c from project2-noai.zip already implements all of them. The
+ * event log, the counts, bs_wait_quiet and the protocol checker are provided
+ * on both paths.
  *
  * An example of how a test might use it:
  *     bs_mode(BS_ASYNC);            // before init_journal
