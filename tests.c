@@ -20,7 +20,14 @@
  *     testlib.c.
  */
 #include <pthread.h>
+#include <stdio.h>
 #include "testlib.h"
+
+/* Project path. GenAI path: leave this as 0.
+ * No-GenAI path: change it to 1 (handout Appendix A, Getting started).
+ * The autograder reads this line to choose your rubric, and ./tests prints
+ * the path it says on its first line. */
+#define NO_GENAI_PATH 0
 
 /* Shorthand for BUFFER_SIZE (journal.h), handy when a test checks a count
  * that depends on the buffer size, as fill_count does. */
@@ -45,5 +52,7 @@ static const test_t tests[] = {
 };
 
 int main(int argc, char **argv) {
+    printf("Path: %s (NO_GENAI_PATH is %d in tests.c)\n",
+           NO_GENAI_PATH ? "no-GenAI" : "GenAI", NO_GENAI_PATH);
     return run_tests(tests, (int)(sizeof tests / sizeof tests[0]), argc, argv);
 }
