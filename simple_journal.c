@@ -4,7 +4,7 @@
  *
  * This is a copy of the starter journal.c. `make simple` builds your tests
  * with this file in place of journal.c, so you can check, at any point,
- * that each required test still fails on the simple version (Section 3.3)
+ * that each required test still fails on the simple version (Section 2.6)
  * while your own journal.c changes. The autograder does not use this file.
  *
  * This version issues every write in the correct order, but it assumes

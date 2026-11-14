@@ -18,7 +18,7 @@
  * YOUR PART, the functions marked TODO at the end of the file: writes that
  * complete later, in random order, on the block service's own threads
  * (BS_ASYNC); holds; and perturbation. On the GenAI path you write them in
- * this order (Section 2.5 and Appendix B of the handout):
+ * this order (Section 2.5 and Appendix A of the GenAI handout):
  *
  *   Checkpoint  What                                    First needed by
  *   ----------  --------------------------------------  -----------------

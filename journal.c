@@ -5,10 +5,9 @@
  * This version issues every write in the correct order, but it assumes
  * that each issued write completes immediately (before the issue call
  * returns). It does not wait for anything, so it is wrong as soon as writes
- * complete later or out of order. Checkpoint 1 asks you to write a test
- * that shows it.
+ * complete later or out of order. Your first tests show it (Section 2.3).
  *
- * TODO (Section 2.4, Feature 6): when you replace this simple version with
+ * TODO (Section 2.4, Documentation): when you replace this simple version with
  * your pipeline, replace this comment with a description of your overall
  * approach: how your threads avoid race conditions and how they achieve
  * maximum concurrency.

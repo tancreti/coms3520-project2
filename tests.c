@@ -39,7 +39,7 @@
 #include "testlib.h"
 
 /* Project path. GenAI path: leave this as 0.
- * No-GenAI path: change it to 1 (handout Appendix A, Getting started).
+ * No-GenAI path: change it to 1 (no-GenAI handout, Section 3.1).
  * The autograder reads this line to choose your rubric, and ./tests prints
  * the path it says on its first line. */
 #define NO_GENAI_PATH 0
