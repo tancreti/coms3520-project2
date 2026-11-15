@@ -1,20 +1,20 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+// Dev container for COM S 3520 Project 2.
+// Format: https://containers.dev/implementors/json_reference/
 {
 	"name": "COM S 3520 Ubuntu Project 2",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
 
-	// Let gdb disable address-space randomization and trace the test processes.
-	"runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"]
+	// Let gdb disable address-space randomization and trace the test
+	// processes, and let make tsan turn randomization off.
+	"runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	// C/C++ support in VS Code: code completion, error squiggles, and the
+	// graphical debugger (which uses the container's gdb).
+	"customizations": {
+		"vscode": {
+			"extensions": ["ms-vscode.cpptools"]
+		}
+	}
 }

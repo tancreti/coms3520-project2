@@ -2,8 +2,7 @@ FROM ubuntu:24.04
 
 # Project 2 needs only the native C toolchain: gcc, make, and the pthread and
 # semaphore libraries (build-essential), plus gdb for debugging. gcc's
-# ThreadSanitizer runtime (make tests CFLAGS="-g -fsanitize=thread") comes
-# with build-essential.
+# ThreadSanitizer runtime, used by make tsan, comes with build-essential.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \

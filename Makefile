@@ -14,7 +14,9 @@
 #                        setarch $(uname -m) -R ./tests_tsan NAME
 #   make public          builds your tests against each public buggy build
 #                        (Section 2.8) and runs every test 5 times on each.
-#   make tests JOURNAL=other.c                  test another journal.c (or .o)
+#   make tests JOURNAL=other.c
+#                        builds ./tests with another journal (a .c or .o)
+#                        in place of journal.c.
 #   make clean
 #
 # make simple and make public expect some tests to fail, so they always
@@ -31,6 +33,14 @@ ARCH    := $(shell uname -m | sed -e 's/arm64/aarch64/')
 HEADERS := journal.h blockservice.h testlib.h
 TESTSRC := tests.c testlib.c blockservice.c $(EXTRA)
 
+# The project uses unnamed semaphores (sem_init). macOS does not implement
+# them: sem_init fails and sem_wait returns at once without waiting, so
+# programs build but do not synchronize. Build in the dev container (Linux).
+ifeq ($(shell uname -s),Darwin)
+$(error macOS does not support sem_init; build in the dev container \
+        (VS Code: Reopen in Container))
+endif
+
 filesystem: filesystem.c blockservice.c $(JOURNAL) journal.h
 	$(CC) $(CFLAGS) -I. -o $@ filesystem.c blockservice.c $(JOURNAL) -pthread
 
@@ -44,8 +54,10 @@ simple: $(TESTSRC) simple_journal.c $(HEADERS)
 # ThreadSanitizer needs address randomization off (setarch -R) on some
 # kernels; the dev container allows it.
 tsan: $(TESTSRC) $(JOURNAL) $(HEADERS)
-	$(CC) $(CFLAGS) -O1 -fsanitize=thread -I. -o tests_tsan $(TESTSRC) $(JOURNAL) -pthread
-	TSAN_OPTIONS="halt_on_error=1 $$TSAN_OPTIONS" setarch $$(uname -m) -R ./tests_tsan
+	$(CC) $(CFLAGS) -O1 -fsanitize=thread -I. -o tests_tsan \
+	    $(TESTSRC) $(JOURNAL) -pthread
+	TSAN_OPTIONS="halt_on_error=1 $$TSAN_OPTIONS" \
+	    setarch $$(uname -m) -R ./tests_tsan
 
 public: $(TESTSRC) $(HEADERS)
 	@test -d public/$(ARCH) || { echo "no public builds for $(ARCH)"; exit 1; }

@@ -1,16 +1,22 @@
 /*
- * tests.c -- your tests for journal.c. COM S 3520 Project 2 (Fall 2026).
+ * tests.c -- your tests for journal.c
+ * COM S 3520 Project 2 (Fall 2026)
  *
- * Build and run:  make tests        then  ./tests
- *                 ./tests NAME      run one test
- *                 ./tests all 7 100 run every test 100 times, seeds 7 to 106
+ * Build and run:
+ *   make tests            build ./tests
+ *   ./tests               run every test once
+ *   ./tests NAME          run one test
+ *   ./tests all 7 100     run every test 100 times, seeds 7 to 106
+ *   make simple           run every test on the simple version
  *
- *                 make simple       run every test on the simple version
- *
- * Each test is a function. Add it, with its name and a one-line description,
- * to the tests table above main. Above every test, write a comment that names
- * the rule it checks. Section 2.6 of the handout lists the tests your tests.c
- * must contain, and testlib.h and blockservice.h list the helpers.
+ * Adding a test:
+ *   1. Write a function static void t_NAME(void), like t_example_immediate
+ *      below.
+ *   2. Above it, write a comment that names the rule it checks.
+ *   3. Add it, with its name and a one-line description, to the tests table
+ *      above main.
+ * Section 2.6 of the handout lists the tests your tests.c must contain;
+ * testlib.h and blockservice.h list the helpers.
  *
  * Rules for every test (Section 2.6):
  *   - Call bs_mode (if needed) and then init_journal once, at the start.
@@ -19,7 +25,8 @@
  *     the autograder builds your tests with its own blockservice.c and
  *     testlib.c.
  *   - When writes are held, make the requests with start_client, not
- *     request: a test thread stuck in request_write never reaches bs_release.
+ *     request: a test thread stuck in request_write never reaches
+ *     bs_release.
  *   - End every test by releasing any holds, waiting for every request with
  *     wait_for_writes, and calling check_protocol(BS_CHECK_ALL_DONE), adding
  *     BS_CHECK_FIFO when one client makes all the requests. A test that
@@ -27,6 +34,7 @@
  *     pass on one machine and fail on another.
  */
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include "testlib.h"
 
@@ -44,22 +52,26 @@
  * finishes (write_complete is called once for each write) and commits
  * exactly once (one TxE per request). */
 static void t_example_immediate(void) {
-    bs_mode(BS_IMMEDIATE);          /* before init_journal */
+    bs_mode(BS_IMMEDIATE);      /* before init_journal */
     init_journal();
     for (int id = 1; id <= 10; id++)
-        request(id);                /* notes the request, then calls request_write */
+        request(id);    /* notes the request, then calls request_write */
     wait_for_writes(10);
     int txe = bs_issued(BS_TXE, BS_ANY);
-    TEST_ASSERT(txe == 10, "%d txe writes issued for 10 requests, expected 10", txe);
+    TEST_ASSERT(txe == 10,
+                "%d txe writes issued for 10 requests, expected 10", txe);
     check_protocol(BS_CHECK_ALL_DONE | BS_CHECK_FIFO);
 }
 
+/* The tests: { name, function, one-line description }. */
 static const test_t tests[] = {
-    { "example_immediate", t_example_immediate, "immediate completion: 10 requests finish" },
+    { "example_immediate", t_example_immediate,
+      "immediate completion: 10 requests finish" },
 };
 
 int main(int argc, char **argv) {
     printf("Path: %s (NO_GENAI_PATH is %d in tests.c)\n",
            NO_GENAI_PATH ? "no-GenAI" : "GenAI", NO_GENAI_PATH);
-    return run_tests(tests, (int)(sizeof tests / sizeof tests[0]), argc, argv);
+    int ntests = (int)(sizeof tests / sizeof tests[0]);
+    return run_tests(tests, ntests, argc, argv);
 }

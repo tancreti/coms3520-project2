@@ -31,50 +31,75 @@
  * Limits: write_ids must be 1 to 100000, and each write_id may be requested
  * only once per test. The log holds 200000 events (each request logs 16),
  * about 12000 requests per test.
+ *
+ * Sections below: write kinds, setup, holds, counts, waiting, checking.
  */
 #ifndef BLOCKSERVICE_H
 #define BLOCKSERVICE_H
 
-/* Write kinds, in journaling-step order. */
+/* ---- write kinds ---------------------------------------------------------
+ * In journaling-step order. Every function below that takes a kind takes
+ * exactly one of these; only write_id may be BS_ANY. */
 enum bs_kind {
-    BS_DATA,      /* step 1: data block to its final location   */
-    BS_TXB,       /* step 2: journal begin block                */
-    BS_JBITMAP,   /* step 2: journal copy of the bitmap         */
-    BS_JINODE,    /* step 2: journal copy of the inode          */
-    BS_TXE,       /* step 3: journal commit block               */
-    BS_BITMAP,    /* step 4: bitmap to its final location       */
-    BS_INODE,     /* step 4: inode to its final location        */
+    BS_DATA,      /* step 1: data block to its final location */
+    BS_TXB,       /* step 2: journal begin block              */
+    BS_JBITMAP,   /* step 2: journal copy of the bitmap       */
+    BS_JINODE,    /* step 2: journal copy of the inode        */
+    BS_TXE,       /* step 3: journal commit block             */
+    BS_BITMAP,    /* step 4: bitmap to its final location     */
+    BS_INODE,     /* step 4: inode to its final location      */
     BS_NKINDS
 };
-#define BS_ANY (-1)          /* "every write_id" in hold/release/counts;
-                                kind is always one write kind, never BS_ANY */
 
-/* Completion modes. Call bs_mode before init_journal. */
-#define BS_IMMEDIATE 0       /* default behavior: complete inside issue_*, on the caller's thread */
-#define BS_ASYNC     1       /* completer threads finish writes later, in random order */
+/* "Every write_id" in holds, releases and counts. Never a kind. */
+#define BS_ANY (-1)
+
+/* The name of a kind, for messages: bs_kind_name(BS_TXE) is "txe". */
+const char *bs_kind_name(int kind);
+
+/* ---- setup: call these before init_journal --------------------------------
+ *
+ * Completion mode:
+ *   BS_IMMEDIATE  (the default) each write completes inside its issue_*
+ *                 call, on the caller's thread.
+ *   BS_ASYNC      completer threads finish writes later, in random order. */
+#define BS_IMMEDIATE 0
+#define BS_ASYNC     1
 void bs_mode(int mode);
-void bs_seed(unsigned seed);                    /* random order and delays (default 1).
-                                                   A seed fixes these choices, not how
-                                                   threads are scheduled, so a run may
-                                                   not repeat exactly. */
-void bs_perturb(int percent, int max_delay_us); /* random short sleeps at issue and
-                                                   before each completion; 0 = off */
-void bs_verbose(int on);                        /* print each issue (default on) */
 
-/* Holds. The newest matching rule wins, so bs_hold(BS_TXE, BS_ANY) followed by
- * bs_release(BS_TXE, 2) lets only TxE(2) complete. Held writes stay pending
- * until released. Holds apply in BS_ASYNC mode only. kind must be one write
- * kind (BS_DATA ... BS_INODE); only write_id may be BS_ANY. The autograder's
- * block service stops the test with an error if kind is not a write kind. */
+/* Seed for the random completion order and delays (default 1). A seed fixes
+ * these choices, not how threads are scheduled, so a run may not repeat
+ * exactly. The test runner calls it for you with the run's seed. */
+void bs_seed(unsigned seed);
+
+/* Perturbation: random short sleeps after an issue and before a completion
+ * function runs, in percent% of them, each 1 to max_delay_us microseconds.
+ * percent 0 turns it off (the default). */
+void bs_perturb(int percent, int max_delay_us);
+
+/* Print each issue. On by default, which ./filesystem shows; the test
+ * runner turns it off. */
+void bs_verbose(int on);
+
+/* ---- holds ---------------------------------------------------------------
+ * A held write is issued normally but stays pending, not completed, until a
+ * release covers it. The newest matching rule wins, so
+ *     bs_hold(BS_TXE, BS_ANY);
+ *     bs_release(BS_TXE, 2);
+ * lets only TxE(2) complete. Holds apply in BS_ASYNC mode only. kind must be
+ * one write kind (BS_DATA ... BS_INODE); only write_id may be BS_ANY. The
+ * autograder's block service stops the test with an error if kind is not a
+ * write kind. */
 void bs_hold(int kind, int write_id);
 void bs_release(int kind, int write_id);
 
-/* Counts so far (write_id may be BS_ANY). */
-int  bs_issued(int kind, int write_id);
-int  bs_completed(int kind, int write_id);
-int  bs_write_completes(void);                  /* write_complete calls seen */
+/* ---- counts so far (write_id may be BS_ANY) ------------------------------ */
+int bs_issued(int kind, int write_id);
+int bs_completed(int kind, int write_id);
+int bs_write_completes(void);           /* write_complete calls seen */
 
-/* Wait until every write that is not held has completed, no completion
+/* ---- waiting -------------------------------------------------------------
+ * Wait until every write that is not held has completed, no completion
  * function is running, and nothing has been logged for about 20 ms (so
  * journal threads have had time to react). It does not wait for held
  * writes, or for a client thread that has not called request_write yet,
@@ -82,12 +107,12 @@ int  bs_write_completes(void);                  /* write_complete calls seen */
  * "quiet" means only that nothing happened for 20 ms. */
 void bs_wait_quiet(void);
 
-/* Called by the test library around the journal (not by journal.c). */
-void bs_note_request(int write_id);             /* just before request_write */
-void bs_note_write_complete(int write_id);      /* from write_complete */
-
-/* Check the whole log so far. Returns NULL if no rule is broken, otherwise a
- * description of the first broken rule. Rules always checked, per write_id:
+/* ---- checking ------------------------------------------------------------
+ * Check the whole log so far. Returns NULL if no rule is broken, otherwise a
+ * description of the first broken rule. Tests usually call check_protocol
+ * (testlib.h) instead, which fails the test with that description.
+ *
+ * Rules always checked, per write_id:
  *   - TxE is issued only after data, TxB, journal bitmap and journal inode
  *     have all completed (the commit barrier);
  *   - bitmap and inode checkpoints are issued only after TxE completed;
@@ -103,6 +128,8 @@ void bs_note_write_complete(int write_id);      /* from write_complete */
 #define BS_CHECK_FIFO     2
 const char *bs_check_protocol(int flags);
 
-const char *bs_kind_name(int kind);
+/* ---- used by the test library only, not by your tests or journal.c ------ */
+void bs_note_request(int write_id);         /* just before request_write */
+void bs_note_write_complete(int write_id);  /* from write_complete */
 
 #endif

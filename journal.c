@@ -20,8 +20,8 @@
  * request at a time, start to finish, on the caller's thread. Don't carry
  * these flags into your pipeline: with three threads and several requests
  * in flight, a single "txe complete" flag cannot tell request 3's TxE from
- * request 4's, and reading and writing it from different threads without a
- * lock is a data race. */
+ * request 4's, and reading and writing it from different threads, with no
+ * semaphore guarding it, is a data race. */
 int is_write_data_complete;
 int is_journal_txb_complete;
 int is_journal_bitmap_complete;
@@ -30,9 +30,10 @@ int is_journal_txe_complete;
 int is_write_bitmap_complete;
 int is_write_inode_complete;
 
-/* This function can be used to initialize the buffers and threads. */
+/* This function can be used to initialize the semaphores, buffers and
+ * threads. */
 void init_journal(void) {
-    // initialize buffers and threads here
+    // initialize semaphores, buffers and threads here
 }
 
 /* Called by the file system to request writing data to persistent storage.
@@ -85,11 +86,40 @@ void request_write(int write_id) {
 
 /* Completion functions. The block service calls each one when the matching
  * write has reached persistent storage (e.g., it is physically written to
- * disk). In this simple version each one only sets its flag. */
-void journal_txb_complete(int write_id)    { (void)write_id; is_journal_txb_complete = 1; }
-void journal_bitmap_complete(int write_id) { (void)write_id; is_journal_bitmap_complete = 1; }
-void journal_inode_complete(int write_id)  { (void)write_id; is_journal_inode_complete = 1; }
-void write_data_complete(int write_id)     { (void)write_id; is_write_data_complete = 1; }
-void journal_txe_complete(int write_id)    { (void)write_id; is_journal_txe_complete = 1; }
-void write_bitmap_complete(int write_id)   { (void)write_id; is_write_bitmap_complete = 1; }
-void write_inode_complete(int write_id)    { (void)write_id; is_write_inode_complete = 1; }
+ * disk). In this simple version each one only sets its flag.
+ * (void)write_id tells the compiler that write_id is unused on purpose;
+ * your version will need it. */
+void journal_txb_complete(int write_id) {
+    (void)write_id;
+    is_journal_txb_complete = 1;
+}
+
+void journal_bitmap_complete(int write_id) {
+    (void)write_id;
+    is_journal_bitmap_complete = 1;
+}
+
+void journal_inode_complete(int write_id) {
+    (void)write_id;
+    is_journal_inode_complete = 1;
+}
+
+void write_data_complete(int write_id) {
+    (void)write_id;
+    is_write_data_complete = 1;
+}
+
+void journal_txe_complete(int write_id) {
+    (void)write_id;
+    is_journal_txe_complete = 1;
+}
+
+void write_bitmap_complete(int write_id) {
+    (void)write_id;
+    is_write_bitmap_complete = 1;
+}
+
+void write_inode_complete(int write_id) {
+    (void)write_id;
+    is_write_inode_complete = 1;
+}
