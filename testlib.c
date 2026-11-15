@@ -45,7 +45,7 @@ static void on_alarm(int sig) {
     (void)sig;
     char buf[200];
     int n = snprintf(buf, sizeof buf, "FAIL %-26s seed %-4u did not finish within %d s "
-                     "(a thread is stuck: deadlock or lost wakeup?)\n",
+                     "(a thread is stuck, or a held write was never released: check the counts)\n",
                      cur_name, cur_seed, TEST_SECONDS);
     if (write(result_fd, buf, (size_t)n) < 0) { /* nothing to do */ }
     _exit(1);
@@ -130,8 +130,8 @@ void wait_for_writes(int n) {
             if (msg) test_fail("protocol: %s", msg);
             msg = bs_check_protocol(BS_CHECK_ALL_DONE);
             test_fail("only %d of %d writes finished after %.0f s; the journal "
-                      "is stuck (deadlock, lost wakeup, or waiting for a write "
-                      "it never issued)%s%s", bs_write_completes(), n, limit_ms / 1000,
+                      "is stuck (deadlock, lost wakeup, a write it never issued, "
+                      "or a write the test held and never released)%s%s", bs_write_completes(), n, limit_ms / 1000,
                       msg ? ". First unfinished: " : "", msg ? msg : "");
         }
         sleep_ms(1);

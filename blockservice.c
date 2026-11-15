@@ -337,7 +337,7 @@ void bs_seed(unsigned seed) { (void)seed; }
 
 /* TODO (Checkpoint 1, needed by txe_delay): holds. Keep a list of rules
  * (kind, write_id or BS_ANY, held or released); the newest rule that
- * matches a write wins. A held write stays pending until a release covers
+ * matches a write wins. kind is always one write kind, never BS_ANY. A held write stays pending until a release covers
  * it, so a release must wake the completer threads. Holds apply in
  * BS_ASYNC mode only. */
 void bs_hold(int kind, int write_id)    { (void)kind; (void)write_id; }

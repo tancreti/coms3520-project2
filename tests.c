@@ -18,6 +18,13 @@
  *   - Use only the functions in journal.h, blockservice.h and testlib.h:
  *     the autograder builds your tests with its own blockservice.c and
  *     testlib.c.
+ *   - When writes are held, make the requests with start_client, not
+ *     request: a test thread stuck in request_write never reaches bs_release.
+ *   - End every test by releasing any holds, waiting for every request with
+ *     wait_for_writes, and calling check_protocol(BS_CHECK_ALL_DONE), adding
+ *     BS_CHECK_FIFO when one client makes all the requests. A test that
+ *     returns with writes still pending checks less than it seems, and can
+ *     pass on one machine and fail on another.
  */
 #include <pthread.h>
 #include <stdio.h>

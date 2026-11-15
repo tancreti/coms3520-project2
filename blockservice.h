@@ -46,20 +46,26 @@ enum bs_kind {
     BS_INODE,     /* step 4: inode to its final location        */
     BS_NKINDS
 };
-#define BS_ANY (-1)          /* "every write_id" in hold/release/counts */
+#define BS_ANY (-1)          /* "every write_id" in hold/release/counts;
+                                kind is always one write kind, never BS_ANY */
 
 /* Completion modes. Call bs_mode before init_journal. */
 #define BS_IMMEDIATE 0       /* default behavior: complete inside issue_*, on the caller's thread */
 #define BS_ASYNC     1       /* completer threads finish writes later, in random order */
 void bs_mode(int mode);
-void bs_seed(unsigned seed);                    /* random order and delays (default 1) */
+void bs_seed(unsigned seed);                    /* random order and delays (default 1).
+                                                   A seed fixes these choices, not how
+                                                   threads are scheduled, so a run may
+                                                   not repeat exactly. */
 void bs_perturb(int percent, int max_delay_us); /* random short sleeps at issue and
                                                    before each completion; 0 = off */
 void bs_verbose(int on);                        /* print each issue (default on) */
 
 /* Holds. The newest matching rule wins, so bs_hold(BS_TXE, BS_ANY) followed by
  * bs_release(BS_TXE, 2) lets only TxE(2) complete. Held writes stay pending
- * until released. Holds apply in BS_ASYNC mode only. */
+ * until released. Holds apply in BS_ASYNC mode only. kind must be one write
+ * kind (BS_DATA ... BS_INODE); only write_id may be BS_ANY. The autograder's
+ * block service stops the test with an error if kind is not a write kind. */
 void bs_hold(int kind, int write_id);
 void bs_release(int kind, int write_id);
 
